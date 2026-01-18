@@ -5713,13 +5713,13 @@ function Cooldowns:CreateTrackerPanel(trackerKey)
         y = y - 10  -- Add spacing before cooldown visibility options
         
         -- Cooldown sweep visibility
-        y = CreateCheckbox(parent, y, "Show Cooldown Sweep",
+        y = CreateCheckbox(parent, y, "Hide Cooldown Sweep",
             function() 
-                local val = GetSetting(trackerKey, "showSweep")
+                local val = GetSetting(trackerKey, "hideSweep")
                 return val == nil or val == true  -- Default to true
             end,
             function(v) 
-                SetSetting(trackerKey, "showSweep", v)
+                SetSetting(trackerKey, "hideSweep", v)
                 -- Refresh layout to apply change
                 local viewer = _G[GetTrackerInfo(trackerKey).name]
                 if viewer then ApplyGridLayout(viewer, trackerKey) end
@@ -9488,13 +9488,13 @@ function Cooldowns:CreateCustomTrackersPanel()
         y = y - 10  -- Add spacing before cooldown visibility options
         
         -- Cooldown sweep visibility
-        y = CreateCheckbox(parent, y, "Show Cooldown Sweep",
+        y = CreateCheckbox(parent, y, "Hide Cooldown Sweep",
             function() 
-                local val = GetSetting(trackerKey, "showSweep")
-                return val == nil or val == true  -- Default to true
+                local val = GetSetting(trackerKey, "hideSweep")
+                return val == true  -- Checked = hide, unchecked = show (default)
             end,
             function(v) 
-                SetSetting(trackerKey, "showSweep", v)
+                SetSetting(trackerKey, "hideSweep", v)
                 -- Refresh layout to apply change
                 LayoutCustomTrackerIcons()
                 -- Also refresh highlight frames
@@ -9831,6 +9831,14 @@ function Cooldowns:CreateCustomTrackersPanel()
             { label = "Custom", value = "custom" },
         }
         
+        -- Radial swipe display state options
+        local RADIAL_DISPLAY_OPTIONS = {
+            { label = "Show Always", value = "always" },
+            { label = "Show Only on Cooldown", value = "cooldown" },
+            { label = "Show Only when Available", value = "available" },
+            { label = "Show Never", value = "never" },
+        }
+        
         -- Header
         local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         header:SetPoint("TOPLEFT", 5, y)
@@ -9899,19 +9907,29 @@ function Cooldowns:CreateCustomTrackersPanel()
         -- All controls
         local controls = {}
         
+        --======================================================
+        -- Settings per icon controls
+        --======================================================
+
+        
+        --#region Icon title
+        
         controls.header = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         controls.header:SetPoint("TOPLEFT", 10, -8)
         controls.header:SetTextColor(1, 0.82, 0)
+        -- cotains "Slot # " text
         controls.header:Hide()
-        
+
         controls.iconPreview = controlsPanel:CreateTexture(nil, "ARTWORK")
         controls.iconPreview:SetPoint("LEFT", controls.header, "RIGHT", 8, 0)
         controls.iconPreview:SetSize(20, 20)
         controls.iconPreview:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         controls.iconPreview:Hide()
+        --#endregion
         
+        --#region Enable Individual Icon
         controls.enableCheck = CreateFrame("CheckButton", nil, controlsPanel, "UICheckButtonTemplate")
-        controls.enableCheck:SetPoint("TOPLEFT", 10, -30)
+        controls.enableCheck:SetPoint("TOPLEFT", controls.header, "BOTTOMLEFT", 0, -10)
         controls.enableCheck:SetSize(24, 24)
         controls.enableCheck:Hide()
         
@@ -9920,7 +9938,9 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.enableLabel:SetText("Enable Individual Icon")
         controls.enableLabel:SetTextColor(0.9, 0.9, 0.9)
         controls.enableLabel:Hide()
-        
+        --#endregion
+
+        --#region Hide Icon tracker
         -- Hide icon checkbox (state-independent - hides icon completely)
         controls.hideCheck = CreateFrame("CheckButton", nil, controlsPanel, "UICheckButtonTemplate")
         controls.hideCheck:SetPoint("LEFT", controls.enableLabel, "RIGHT", 20, 0)
@@ -9932,9 +9952,11 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.hideLabel:SetText("Hide Icon in Tracker")
         controls.hideLabel:SetTextColor(0.9, 0.9, 0.9)
         controls.hideLabel:Hide()
-        
+        --#endregion
+
+        --#region Ready / On Cooldown
         controls.stateLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.stateLabel:SetPoint("TOPLEFT", 10, -58)
+        controls.stateLabel:SetPoint("TOPLEFT", controls.enableCheck, "BOTTOMLEFT", 0, -10)
         controls.stateLabel:SetText("Configure State:")
         controls.stateLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.stateLabel:Hide()
@@ -9950,9 +9972,10 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.inactiveBtn:SetSize(90, 20)
         controls.inactiveBtn:SetText("On Cooldown")
         controls.inactiveBtn:Hide()
+        --#endRegion
         
         controls.showCheck = CreateFrame("CheckButton", nil, controlsPanel, "UICheckButtonTemplate")
-        controls.showCheck:SetPoint("TOPLEFT", 10, -85)
+        controls.showCheck:SetPoint("TOPLEFT", controls.stateLabel, "BOTTOMLEFT", 0, -10)
         controls.showCheck:SetSize(24, 24)
         controls.showCheck:Hide()
         
@@ -9963,7 +9986,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.showLabel:Hide()
         
         controls.sizeLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.sizeLabel:SetPoint("TOPLEFT", 10, -115)
+        controls.sizeLabel:SetPoint("TOPLEFT", controls.showCheck, "BOTTOMLEFT", 0, -10)
         controls.sizeLabel:SetText("Size:")
         controls.sizeLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.sizeLabel:Hide()
@@ -9985,7 +10008,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.sizeValue:Hide()
         
         controls.opacityLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.opacityLabel:SetPoint("TOPLEFT", 10, -145)
+        controls.opacityLabel:SetPoint("TOPLEFT", controls.sizeLabel, "BOTTOMLEFT", 0, -10)
         controls.opacityLabel:SetText("Opacity:")
         controls.opacityLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.opacityLabel:Hide()
@@ -10007,7 +10030,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.opacityValue:Hide()
         
         controls.desatCheck = CreateFrame("CheckButton", nil, controlsPanel, "UICheckButtonTemplate")
-        controls.desatCheck:SetPoint("TOPLEFT", 10, -175)
+        controls.desatCheck:SetPoint("TOPLEFT", controls.opacityLabel, "BOTTOMLEFT", 0, -10)
         controls.desatCheck:SetSize(24, 24)
         controls.desatCheck:Hide()
         
@@ -10030,18 +10053,18 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.procGlowLabel:Hide()
         
         controls.aspectLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.aspectLabel:SetPoint("TOPLEFT", 10, -205)
+        controls.aspectLabel:SetPoint("TOPLEFT", controls.desatCheck, "BOTTOMLEFT", 0, -10)
         controls.aspectLabel:SetText("Aspect Ratio:")
         controls.aspectLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.aspectLabel:Hide()
         
         controls.aspectDropdown = CreateFrame("Frame", nil, controlsPanel, "UIDropDownMenuTemplate")
-        controls.aspectDropdown:SetPoint("TOPLEFT", 60, -200)
+        controls.aspectDropdown:SetPoint("LEFT", controls.aspectLabel, "RIGHT", 20, 0)
         UIDropDownMenu_SetWidth(controls.aspectDropdown, 100)
         controls.aspectDropdown:Hide()
         
         controls.customLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.customLabel:SetPoint("TOPLEFT", 10, -235)
+        controls.customLabel:SetPoint("TOPLEFT", controls.aspectLabel, "BOTTOMLEFT", 0, -10)
         controls.customLabel:SetText("Custom W:")
         controls.customLabel:SetTextColor(0.7, 0.7, 0.7)
         controls.customLabel:Hide()
@@ -10068,22 +10091,119 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.customH:SetMaxLetters(3)
         controls.customH:Hide()
         
+
+        controls.defaultSwipeCheck = CreateFrame("CheckButton", nil, controlsPanel, "UICheckButtonTemplate")
+        controls.defaultSwipeCheck:SetPoint("TOPLEFT", controls.customLabel, "BOTTOMLEFT", 0, -10)
+        controls.defaultSwipeCheck:SetSize(24, 24)
+        controls.defaultSwipeCheck:Hide()
+
+        controls.defaultSwipeLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        controls.defaultSwipeLabel:SetPoint("LEFT", controls.defaultSwipeCheck, "RIGHT", 10, 0)
+        controls.defaultSwipeLabel:SetText("Hide default swipe animation")
+        controls.defaultSwipeLabel:SetTextColor(0.8, 0.8, 0.8)
+        controls.defaultSwipeLabel:Hide()
+
+        -- =====================================================================
+        -- Radial Swipe Section SECTION
+        -- =====================================================================
+
+        controls.RadialHeader = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        controls.RadialHeader:SetPoint("TOPLEFT", controls.defaultSwipeCheck, "BOTTOMLEFT", 0, -20)
+        controls.RadialHeader:SetText("|cff00ccffRadial Swipe|r")
+        controls.RadialHeader:Hide()
+        
+        -- Display state dropdown
+        controls.radialDisplayLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        controls.radialDisplayLabel:SetPoint("TOPLEFT", controls.RadialHeader, "BOTTOMLEFT", 0, -10)
+        controls.radialDisplayLabel:SetText("Display State:")
+        controls.radialDisplayLabel:SetTextColor(0.8, 0.8, 0.8)
+        controls.radialDisplayLabel:Hide()
+        
+        controls.radialDisplayDropdown = CreateFrame("Frame", nil, controlsPanel, "UIDropDownMenuTemplate")
+        controls.radialDisplayDropdown:SetPoint("LEFT", controls.radialDisplayLabel, "RIGHT", -10, 0)
+        UIDropDownMenu_SetWidth(controls.radialDisplayDropdown, 140)
+        controls.radialDisplayDropdown:Hide()
+        
+        -- Custom texture path
+        controls.radialTextureLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        controls.radialTextureLabel:SetPoint("TOPLEFT", controls.radialDisplayLabel, "BOTTOMLEFT", 0, -10)
+        controls.radialTextureLabel:SetText("Custom Texture Path:")
+        controls.radialTextureLabel:SetTextColor(0.8, 0.8, 0.8)
+        controls.radialTextureLabel:Hide()
+        
+        controls.radialTextureBox = CreateFrame("EditBox", nil, controlsPanel, "InputBoxTemplate")
+        controls.radialTextureBox:SetPoint("LEFT", controls.radialTextureLabel, "RIGHT", 10, 0)
+        controls.radialTextureBox:SetSize(200, 18)
+        controls.radialTextureBox:SetAutoFocus(false)
+        controls.radialTextureBox:SetMaxLetters(200)
+        controls.radialTextureBox:Hide()
+        
+        -- Color picker
+        controls.radialColorLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        controls.radialColorLabel:SetPoint("TOPLEFT", controls.radialTextureLabel, "BOTTOMLEFT", 0, -10)
+        controls.radialColorLabel:SetText("Color:")
+        controls.radialColorLabel:SetTextColor(0.8, 0.8, 0.8)
+        controls.radialColorLabel:Hide()
+        
+        controls.radialColorBtn = CreateFrame("Button", nil, controlsPanel, "BackdropTemplate")
+        controls.radialColorBtn:SetPoint("LEFT", controls.radialColorLabel, "RIGHT", 10, 0)
+        controls.radialColorBtn:SetSize(24, 16)
+        controls.radialColorBtn:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1})
+        controls.radialColorBtn:SetBackdropColor(1, 1, 1, 1)
+        controls.radialColorBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+        controls.radialColorBtn:Hide()
+        
+        -- Scale input
+        controls.radialScaleLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        controls.radialScaleLabel:SetPoint("TOPLEFT", controls.radialColorLabel, "BOTTOMLEFT", 0, -10)
+        controls.radialScaleLabel:SetText("Scale:")
+        controls.radialScaleLabel:SetTextColor(0.8, 0.8, 0.8)
+        controls.radialScaleLabel:Hide()
+        
+        controls.radialScaleBox = CreateFrame("EditBox", nil, controlsPanel, "InputBoxTemplate")
+        controls.radialScaleBox:SetPoint("LEFT", controls.radialScaleLabel, "RIGHT", 10, 0)
+        controls.radialScaleBox:SetSize(50, 18)
+        controls.radialScaleBox:SetAutoFocus(false)
+        controls.radialScaleBox:SetMaxLetters(5)
+        controls.radialScaleBox:Hide()
+        
+        -- =====================================================================
+        -- CUSTOM ICON TEXTURE SECTION (spell ID-based)
+        -- =====================================================================
+        controls.iconTextureHeader = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        controls.iconTextureHeader:SetPoint("TOPLEFT", controls.radialScaleLabel, "BOTTOMLEFT", 0, -20)
+        controls.iconTextureHeader:SetText("|cffffcc00Custom Icon Texture|r")
+        controls.iconTextureHeader:Hide()
+        
+        controls.iconTextureLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        controls.iconTextureLabel:SetPoint("TOPLEFT", controls.iconTextureHeader, "BOTTOMLEFT", 0, -10)
+        controls.iconTextureLabel:SetText("Texture Path:")
+        controls.iconTextureLabel:SetTextColor(0.8, 0.8, 0.8)
+        controls.iconTextureLabel:Hide()
+        
+        controls.iconTextureBox = CreateFrame("EditBox", nil, controlsPanel, "InputBoxTemplate")
+        controls.iconTextureBox:SetPoint("LEFT", controls.iconTextureLabel, "RIGHT", 10, 0)
+        controls.iconTextureBox:SetSize(200, 18)
+        controls.iconTextureBox:SetAutoFocus(false)
+        controls.iconTextureBox:SetMaxLetters(200)
+        controls.iconTextureBox:Hide()
+        
         -- =====================================================================
         -- DOCK ASSIGNMENT SECTION
         -- =====================================================================
         controls.dockHeader = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        controls.dockHeader:SetPoint("TOPLEFT", 10, -265)
+        controls.dockHeader:SetPoint("TOPLEFT", controls.iconTextureLabel, "BOTTOMLEFT", 0, -20)
         controls.dockHeader:SetText("|cff00ccffDock Assignment|r")
         controls.dockHeader:Hide()
         
         controls.dockLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.dockLabel:SetPoint("TOPLEFT", 10, -285)
+        controls.dockLabel:SetPoint("TOPLEFT", controls.dockHeader, "BOTTOMLEFT", 0, -10)
         controls.dockLabel:SetText("Assign to Dock:")
         controls.dockLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.dockLabel:Hide()
         
         controls.dockDropdown = CreateFrame("Frame", nil, controlsPanel, "UIDropDownMenuTemplate")
-        controls.dockDropdown:SetPoint("TOPLEFT", 80, -278)
+        controls.dockDropdown:SetPoint("LEFT", controls.dockLabel, "RIGHT", 20, 0)
         UIDropDownMenu_SetWidth(controls.dockDropdown, 120)
         controls.dockDropdown:Hide()
         
@@ -10105,13 +10225,13 @@ function Cooldowns:CreateCustomTrackersPanel()
         }
         
         controls.cooldownTextHeader = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        controls.cooldownTextHeader:SetPoint("TOPLEFT", 10, -315)
+        controls.cooldownTextHeader:SetPoint("TOPLEFT", controls.dockLabel, "BOTTOMLEFT", 0, -20)
         controls.cooldownTextHeader:SetText("Cooldown Text")
         controls.cooldownTextHeader:SetTextColor(1, 0.82, 0)
         controls.cooldownTextHeader:Hide()
         
         controls.cooldownTextScaleLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.cooldownTextScaleLabel:SetPoint("TOPLEFT", 10, -335)
+        controls.cooldownTextScaleLabel:SetPoint("TOPLEFT", controls.cooldownTextHeader, "BOTTOMLEFT", 0, -10)
         controls.cooldownTextScaleLabel:SetText("Scale:")
         controls.cooldownTextScaleLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.cooldownTextScaleLabel:Hide()
@@ -10144,7 +10264,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.cooldownTextAnchorDropdown:Hide()
         
         controls.cooldownTextColorLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.cooldownTextColorLabel:SetPoint("TOPLEFT", 10, -360)
+        controls.cooldownTextColorLabel:SetPoint("TOPLEFT", controls.cooldownTextScaleLabel, "BOTTOMLEFT", 0, -10)
         controls.cooldownTextColorLabel:SetText("Color:")
         controls.cooldownTextColorLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.cooldownTextColorLabel:Hide()
@@ -10205,13 +10325,13 @@ function Cooldowns:CreateCustomTrackersPanel()
         -- COUNT TEXT SECTION
         -- =====================================================================
         controls.countTextHeader = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        controls.countTextHeader:SetPoint("TOPLEFT", 10, -390)
+        controls.countTextHeader:SetPoint("TOPLEFT", controls.cooldownTextColorLabel, "BOTTOMLEFT", 0, -20)
         controls.countTextHeader:SetText("Count/Charge Text")
         controls.countTextHeader:SetTextColor(1, 0.82, 0)
         controls.countTextHeader:Hide()
         
         controls.countTextScaleLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.countTextScaleLabel:SetPoint("TOPLEFT", 10, -410)
+        controls.countTextScaleLabel:SetPoint("TOPLEFT", controls.countTextHeader, "BOTTOMLEFT", 0, -10)
         controls.countTextScaleLabel:SetText("Scale:")
         controls.countTextScaleLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.countTextScaleLabel:Hide()
@@ -10244,7 +10364,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.countTextAnchorDropdown:Hide()
         
         controls.countTextColorLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.countTextColorLabel:SetPoint("TOPLEFT", 10, -435)
+        controls.countTextColorLabel:SetPoint("TOPLEFT", controls.countTextScaleLabel, "BOTTOMLEFT", 0, -10)
         controls.countTextColorLabel:SetText("Color:")
         controls.countTextColorLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.countTextColorLabel:Hide()
@@ -10305,13 +10425,13 @@ function Cooldowns:CreateCustomTrackersPanel()
         -- CUSTOM LABEL SECTION (Accessibility)
         -- =====================================================================
         controls.labelHeader = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        controls.labelHeader:SetPoint("TOPLEFT", 10, -465)
+        controls.labelHeader:SetPoint("TOPLEFT", controls.countTextColorLabel, "BOTTOMLEFT", 0, -20)
         controls.labelHeader:SetText("Custom Label (Accessibility)")
         controls.labelHeader:SetTextColor(1, 0.82, 0)
         controls.labelHeader:Hide()
         
         controls.labelEnableCheck = CreateFrame("CheckButton", nil, controlsPanel, "UICheckButtonTemplate")
-        controls.labelEnableCheck:SetPoint("TOPLEFT", 10, -485)
+        controls.labelEnableCheck:SetPoint("TOPLEFT", controls.labelHeader, "BOTTOMLEFT", 0, -10)
         controls.labelEnableCheck:SetSize(24, 24)
         controls.labelEnableCheck:Hide()
         
@@ -10322,7 +10442,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.labelEnableLabel:Hide()
         
         controls.labelTextLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.labelTextLabel:SetPoint("TOPLEFT", 10, -510)
+        controls.labelTextLabel:SetPoint("TOPLEFT", controls.labelEnableCheck, "BOTTOMLEFT", 0, -10)
         controls.labelTextLabel:SetText("Text:")
         controls.labelTextLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.labelTextLabel:Hide()
@@ -10335,7 +10455,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.labelTextBox:Hide()
         
         controls.labelSizeLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.labelSizeLabel:SetPoint("TOPLEFT", 10, -535)
+        controls.labelSizeLabel:SetPoint("TOPLEFT", controls.labelTextLabel, "BOTTOMLEFT", 0, -10)
         controls.labelSizeLabel:SetText("Font Size:")
         controls.labelSizeLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.labelSizeLabel:Hide()
@@ -10357,7 +10477,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.labelSizeValue:Hide()
         
         controls.labelColorLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.labelColorLabel:SetPoint("TOPLEFT", 10, -560)
+        controls.labelColorLabel:SetPoint("TOPLEFT", controls.labelSizeLabel, "BOTTOMLEFT", 0, -10)
         controls.labelColorLabel:SetText("Color:")
         controls.labelColorLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.labelColorLabel:Hide()
@@ -10382,7 +10502,7 @@ function Cooldowns:CreateCustomTrackersPanel()
         controls.labelAnchorDropdown:Hide()
         
         controls.labelOffsetXLabel = controlsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        controls.labelOffsetXLabel:SetPoint("TOPLEFT", 10, -585)
+        controls.labelOffsetXLabel:SetPoint("TOPLEFT", controls.labelColorLabel, "BOTTOMLEFT", 0, -10)
         controls.labelOffsetXLabel:SetText("Offset X:")
         controls.labelOffsetXLabel:SetTextColor(0.8, 0.8, 0.8)
         controls.labelOffsetXLabel:Hide()
@@ -10513,6 +10633,11 @@ function Cooldowns:CreateCustomTrackersPanel()
             controls.showCheck:SetChecked(showState)
             controls.sizeSlider:SetValue(size)
             controls.sizeValue:SetText(tostring(size))
+            
+            -- Default swipe setting (nil = use tracker default, false = show, true = hide)
+            local hideSweep = CooldownHighlights:GetHideSweep(customTrackerKey, slotIndex)
+            -- Checkbox is "Hide default swipe" so: checked = true (hide), unchecked = false/nil (show)
+            controls.defaultSwipeCheck:SetChecked(hideSweep == true)
             controls.opacitySlider:SetValue(opacity)
             controls.opacityValue:SetText(math.floor(opacity * 100) .. "%")
             controls.desatCheck:SetChecked(not saturated)
@@ -10573,10 +10698,10 @@ function Cooldowns:CreateCustomTrackersPanel()
             -- Get current dock assignment
             local currentDock = CooldownHighlights:GetDockAssignment(customTrackerKey, slotIndex) or 0
             
-            -- Helper function to initialize anchor dropdowns
-            local function InitAnchorDropdown(dropdown, currentAnchor, setFunc)
+            -- Helper function to initialize any dropdown with options array
+            local function InitDropdown(dropdown, options, currentValue, setFunc)
                 UIDropDownMenu_Initialize(dropdown, function(self, level)
-                    for _, opt in ipairs(ANCHOR_OPTIONS) do
+                    for _, opt in ipairs(options) do
                         local info = UIDropDownMenu_CreateInfo()
                         info.text = opt.label
                         info.value = opt.value
@@ -10584,13 +10709,13 @@ function Cooldowns:CreateCustomTrackersPanel()
                             setFunc(opt.value)
                             UIDropDownMenu_SetText(dropdown, opt.label)
                         end
-                        info.checked = (currentAnchor == opt.value)
+                        info.checked = (currentValue == opt.value)
                         UIDropDownMenu_AddButton(info, level)
                     end
                 end)
                 -- Set current text
-                for _, opt in ipairs(ANCHOR_OPTIONS) do
-                    if opt.value == currentAnchor then
+                for _, opt in ipairs(options) do
+                    if opt.value == currentValue then
                         UIDropDownMenu_SetText(dropdown, opt.label)
                         break
                     end
@@ -10598,13 +10723,13 @@ function Cooldowns:CreateCustomTrackersPanel()
             end
             
             -- Initialize anchor dropdowns
-            InitAnchorDropdown(controls.cooldownTextAnchorDropdown, cooldownTextAnchor, function(anchor)
+            InitDropdown(controls.cooldownTextAnchorDropdown, ANCHOR_OPTIONS, cooldownTextAnchor, function(anchor)
                 CooldownHighlights:SetCooldownTextAnchor(customTrackerKey, slotIndex, anchor)
             end)
-            InitAnchorDropdown(controls.countTextAnchorDropdown, countTextAnchor, function(anchor)
+            InitDropdown(controls.countTextAnchorDropdown, ANCHOR_OPTIONS, countTextAnchor, function(anchor)
                 CooldownHighlights:SetCountTextAnchor(customTrackerKey, slotIndex, anchor)
             end)
-            InitAnchorDropdown(controls.labelAnchorDropdown, labelAnchor, function(anchor)
+            InitDropdown(controls.labelAnchorDropdown, ANCHOR_OPTIONS, labelAnchor, function(anchor)
                 CooldownHighlights:SetLabelAnchor(customTrackerKey, slotIndex, anchor)
             end)
             
@@ -10675,12 +10800,57 @@ function Cooldowns:CreateCustomTrackersPanel()
             
             UpdateCustomAspectVisibility(aspectRatio)
             
+            -- Radial swipe settings (state-independent)
+            local radialDisplayState = CooldownHighlights:GetRadialDisplayState(customTrackerKey, slotIndex)
+            local radialTexturePath = CooldownHighlights:GetRadialTexturePath(customTrackerKey, slotIndex)
+            local radialColor = CooldownHighlights:GetRadialColor(customTrackerKey, slotIndex)
+            local radialScale = CooldownHighlights:GetRadialScale(customTrackerKey, slotIndex)
+            
+            -- Initialize radial display dropdown
+            InitDropdown(controls.radialDisplayDropdown, RADIAL_DISPLAY_OPTIONS, radialDisplayState, function(state)
+                CooldownHighlights:SetRadialDisplayState(customTrackerKey, slotIndex, state)
+            end)
+            
+            -- Set radial texture path
+            controls.radialTextureBox:SetText(radialTexturePath or "")
+            
+            -- Set radial color
+            controls.radialColorBtn:SetBackdropColor(radialColor[1] or 1, radialColor[2] or 1, radialColor[3] or 1, 1)
+            
+            -- Set radial scale
+            controls.radialScaleBox:SetText(tostring(radialScale))
+            
+            -- Custom icon texture (spell ID-based)
+            local iconSpellID = nil
+            local icon = icons[slotIndex]
+            if icon then
+                iconSpellID = icon.spellID or icon.SpellID or icon.spellId
+                if not iconSpellID and icon.GetSpellID then
+                    pcall(function() iconSpellID = icon:GetSpellID() end)
+                end
+                -- Fallback for custom tracker icons
+                if not iconSpellID and icon.trackType == "spell" and icon.trackID then
+                    iconSpellID = icon.trackID
+                end
+            end
+            
+            local customIconTexture = iconSpellID and CooldownHighlights:GetCustomIconTexture(customTrackerKey, iconSpellID)
+            controls.iconTextureBox:SetText(customIconTexture or "")
+            controls.iconTextureBox._currentSpellID = iconSpellID  -- Store for script handlers
+            
             controls.enableCheck:SetScript("OnClick", function(self)
                 CooldownHighlights:EnableHighlight(customTrackerKey, slotIndex, self:GetChecked())
             end)
             
             controls.hideCheck:SetScript("OnClick", function(self)
                 CooldownHighlights:SetIconHidden(customTrackerKey, slotIndex, self:GetChecked())
+            end)
+            
+            controls.defaultSwipeCheck:SetScript("OnClick", function(self)
+                -- Checkbox is "Hide default swipe": checked = hide (true), unchecked = use tracker default (nil)
+                local hideSwipe = self:GetChecked()
+                -- Store true to hide, nil to use tracker default
+                CooldownHighlights:SetHideSweep(customTrackerKey, slotIndex, hideSwipe and true or nil)
             end)
             
             controls.activeBtn:SetScript("OnClick", function()
@@ -10858,6 +11028,65 @@ function Cooldowns:CreateCustomTrackersPanel()
                 value = math.floor(value)
                 controls.labelOffsetYValue:SetText(tostring(value))
                 CooldownHighlights:SetLabelOffsetY(customTrackerKey, slotIndex, value)
+            end)
+            
+            -- Radial swipe handlers
+            controls.radialTextureBox:SetScript("OnEnterPressed", function(self)
+                self:ClearFocus()
+                CooldownHighlights:SetRadialTexturePath(customTrackerKey, slotIndex, self:GetText())
+            end)
+            controls.radialTextureBox:SetScript("OnEditFocusLost", function(self)
+                CooldownHighlights:SetRadialTexturePath(customTrackerKey, slotIndex, self:GetText())
+            end)
+            
+            controls.radialColorBtn:SetScript("OnClick", function()
+                local r, g, b = controls.radialColorBtn:GetBackdropColor()
+                local info = {
+                    swatchFunc = function()
+                        local r, g, b = ColorPickerFrame:GetColorRGB()
+                        controls.radialColorBtn:SetBackdropColor(r, g, b, 1)
+                        CooldownHighlights:SetRadialColor(customTrackerKey, slotIndex, {r, g, b, 1})
+                    end,
+                    cancelFunc = function(prev)
+                        controls.radialColorBtn:SetBackdropColor(prev.r, prev.g, prev.b, 1)
+                        CooldownHighlights:SetRadialColor(customTrackerKey, slotIndex, {prev.r, prev.g, prev.b, 1})
+                    end,
+                    r = r,
+                    g = g,
+                    b = b,
+                }
+                ColorPickerFrame:SetupColorPickerAndShow(info)
+            end)
+            
+            -- Custom icon texture handlers (spell ID-based)
+            controls.iconTextureBox:SetScript("OnEnterPressed", function(self)
+                self:ClearFocus()
+                local spellID = self._currentSpellID
+                if spellID then
+                    CooldownHighlights:SetCustomIconTexture(customTrackerKey, spellID, self:GetText())
+                end
+            end)
+            controls.iconTextureBox:SetScript("OnEditFocusLost", function(self)
+                local spellID = self._currentSpellID
+                if spellID then
+                    CooldownHighlights:SetCustomIconTexture(customTrackerKey, spellID, self:GetText())
+                end
+            end)
+            
+            controls.radialScaleBox:SetScript("OnEnterPressed", function(self)
+                self:ClearFocus()
+                local scale = tonumber(self:GetText()) or 1.0
+                if scale < 0.1 then scale = 0.1 end
+                if scale > 5.0 then scale = 5.0 end
+                self:SetText(tostring(scale))
+                CooldownHighlights:SetRadialScale(customTrackerKey, slotIndex, scale)
+            end)
+            controls.radialScaleBox:SetScript("OnEditFocusLost", function(self)
+                local scale = tonumber(self:GetText()) or 1.0
+                if scale < 0.1 then scale = 0.1 end
+                if scale > 5.0 then scale = 5.0 end
+                self:SetText(tostring(scale))
+                CooldownHighlights:SetRadialScale(customTrackerKey, slotIndex, scale)
             end)
         end
         

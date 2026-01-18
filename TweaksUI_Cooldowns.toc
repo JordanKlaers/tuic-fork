@@ -41,4 +41,5 @@ Core\Main.lua
 Modules\Docks.lua
 Modules\Cooldowns.lua
 Modules\BuffHighlights.lua
+Modules\RadialSwipe.lua
 Modules\CooldownHighlights.lua
