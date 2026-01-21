@@ -173,9 +173,13 @@ local function GetDB(trackerKey)
     if not db.radialSwipe.texturePath then db.radialSwipe.texturePath = {} end
     if not db.radialSwipe.color then db.radialSwipe.color = {} end
     if not db.radialSwipe.scale then db.radialSwipe.scale = {} end
+    if not db.radialSwipe.offsetX then db.radialSwipe.offsetX = {} end
+    if not db.radialSwipe.offsetY then db.radialSwipe.offsetY = {} end
+    if not db.radialSwipe.rotation then db.radialSwipe.rotation = {} end
     
     -- Custom icon texture overrides (spell ID-based, persists across reordering)
     if not db.customIconTexture then db.customIconTexture = {} end  -- [spellID] = texturePath
+    if not db.customIconColor then db.customIconColor = {} end  -- [spellID] = {r, g, b}
     
     return db
 end
@@ -554,7 +558,6 @@ local function GetRadialColor(trackerKey, slotIndex)
 end
 
 local function SetRadialColor(trackerKey, slotIndex, color)
-    DevTool:AddData(color, 'color')
     local db = GetDB(trackerKey)
     if db then db.radialSwipe.color[slotIndex] = color end
 end
@@ -569,6 +572,36 @@ local function SetRadialScale(trackerKey, slotIndex, scale)
     if db then db.radialSwipe.scale[slotIndex] = scale end
 end
 
+local function GetRadialOffsetX(trackerKey, slotIndex)
+    local db = GetDB(trackerKey)
+    return db and db.radialSwipe.offsetX[slotIndex] or 0
+end
+
+local function SetRadialOffsetX(trackerKey, slotIndex, offset)
+    local db = GetDB(trackerKey)
+    if db then db.radialSwipe.offsetX[slotIndex] = offset end
+end
+
+local function GetRadialOffsetY(trackerKey, slotIndex)
+    local db = GetDB(trackerKey)
+    return db and db.radialSwipe.offsetY[slotIndex] or 0
+end
+
+local function SetRadialOffsetY(trackerKey, slotIndex, offset)
+    local db = GetDB(trackerKey)
+    if db then db.radialSwipe.offsetY[slotIndex] = offset end
+end
+
+local function GetRadialRotation(trackerKey, slotIndex)
+    local db = GetDB(trackerKey)
+    return db and db.radialSwipe.rotation[slotIndex] or 0
+end
+
+local function SetRadialRotation(trackerKey, slotIndex, rotation)
+    local db = GetDB(trackerKey)
+    if db then db.radialSwipe.rotation[slotIndex] = rotation end
+end
+
 -- Custom icon texture helpers (spell ID-based, persists across slot changes)
 local function GetCustomIconTexture(trackerKey, spellID)
     if not spellID then return nil end
@@ -581,6 +614,26 @@ local function SetCustomIconTexture(trackerKey, spellID, texturePath)
     local db = GetDB(trackerKey)
     if db then
         db.customIconTexture[tostring(spellID)] = texturePath
+    end
+end
+
+local function GetCustomIconColor(trackerKey, spellID)
+    if not spellID then return {1, 1, 1} end
+    local db = GetDB(trackerKey)
+    if db then
+        local color = db.customIconColor[tostring(spellID)]
+        if color then
+            return color
+        end
+    end
+    return {1, 1, 1}  -- Default white
+end
+
+local function SetCustomIconColor(trackerKey, spellID, color)
+    if not spellID then return end
+    local db = GetDB(trackerKey)
+    if db then
+        db.customIconColor[tostring(spellID)] = color
     end
 end
 
@@ -728,6 +781,16 @@ local function GetSlotCount(trackerKey)
     return #CollectIcons(trackerKey)
 end
 
+local function GetShouldShowCountdownText(trackerKey, slotIndex)
+    local showCountdownText = GetShowCountdownText(trackerKey, slotIndex)  -- Per-icon setting
+    if showCountdownText == nil and TUICD.Database then
+        local countdownSetting = TUICD.Database:GetTrackerSetting(trackerKey, "showCountdownText")
+        showCountdownText = (countdownSetting ~= nil) and countdownSetting or true
+    end
+    if showCountdownText == nil then showCountdownText = true end
+    return showCountdownText
+end
+
 -- ============================================================================
 -- HIGHLIGHT FRAME CREATION
 -- ============================================================================
@@ -800,7 +863,7 @@ local function CreateHighlightFrame(trackerKey, slotIndex)
     
     -- Apply sweep and countdown text settings (per-icon overrides tracker-level)
     local hideSweep = GetHideSweep(trackerKey, slotIndex)  -- Per-icon setting (true=hide, false=show, nil=use tracker default)
-    local showCountdownText = GetShowCountdownText(trackerKey, slotIndex)  -- Per-icon setting
+    
     
     -- Handle sweep visibility with proper hierarchy
     if hideSweep == nil then
@@ -813,29 +876,26 @@ local function CreateHighlightFrame(trackerKey, slotIndex)
         end
     end
     
-    -- Handle countdown text visibility
-    if showCountdownText == nil and TUICD.Database then
-        local countdownSetting = TUICD.Database:GetTrackerSetting(trackerKey, "showCountdownText")
-        showCountdownText = (countdownSetting ~= nil) and countdownSetting or true
-    end
-    if showCountdownText == nil then showCountdownText = true end
+    local showCountdownText = GetShouldShowCountdownText(trackerKey, slotIndex)
     
     frame.cooldown:SetDrawSwipe(not hideSweep)  -- Invert: hideSweep=true means don't draw
     frame.cooldown:SetDrawEdge(not hideSweep)
-    frame.cooldown:SetHideCountdownNumbers(not showCountdownText)
+    -- upon creation, the frame hides the cooldown text untill it can be determined it should be shown.
+    frame.cooldown:SetHideCountdownNumbers(true)
     
     -- Store settings on cooldown for hooks to use
     frame.cooldown._TUI_hideSweep = hideSweep
     frame.cooldown._TUI_showCountdownText = showCountdownText
     frame.cooldown._TUI_trackerKey = trackerKey
     frame.cooldown._TUI_slotIndex = slotIndex
+    frame.cooldown.hideCountdownText = true  -- Start with countdown text hidden
     
     -- Hook SetCooldown to reapply settings after Blizzard updates
     hooksecurefunc(frame.cooldown, "SetCooldown", function(self)
         pcall(function()
             self:SetDrawSwipe(not self._TUI_hideSweep)
             self:SetDrawEdge(not self._TUI_hideSweep)
-            self:SetHideCountdownNumbers(not self._TUI_showCountdownText)
+            self:SetHideCountdownNumbers(self.hideCountdownText)
         end)
     end)
     -- Also hook SetCooldownFromDurationObject for Midnight API
@@ -844,7 +904,7 @@ local function CreateHighlightFrame(trackerKey, slotIndex)
             pcall(function()
                 self:SetDrawSwipe(not self._TUI_hideSweep)
                 self:SetDrawEdge(not self._TUI_hideSweep)
-                self:SetHideCountdownNumbers(not self._TUI_showCountdownText)
+                self:SetHideCountdownNumbers(self.hideCountdownText)
             end)
         end)
     end
@@ -996,7 +1056,7 @@ local function ApplyAspectRatio(frame, size, aspectStr, trackerKey, slotIndex, s
         local texRange = 1 - (baseInset * 2)  -- 0.84
         
         local left, right, top, bottom = baseInset, 1 - baseInset, baseInset, 1 - baseInset
-        
+
         if ratioW > ratioH then
             -- Wider than tall - crop top/bottom
             local cropFactor = ratioH / ratioW
@@ -1028,8 +1088,7 @@ local function UpdateHighlightFrame(trackerKey, slotIndex)
     -- Update sweep and countdown text settings (per-icon overrides tracker-level)
     if frame.cooldown then
         local hideSweep = GetHideSweep(trackerKey, slotIndex)  -- Per-icon setting (true=hide, false=show, nil=use tracker default)
-        local showCountdownText = GetShowCountdownText(trackerKey, slotIndex)  -- Per-icon setting
-        
+
         -- Handle sweep visibility with proper hierarchy
         if hideSweep == nil then
             -- Per-icon not set, check tracker-level hideSweep setting
@@ -1055,7 +1114,7 @@ local function UpdateHighlightFrame(trackerKey, slotIndex)
         -- Apply immediately
         pcall(function()
             frame.cooldown:SetDrawSwipe(not hideSweep)  -- Invert: hideSweep=true means don't draw
-            frame.cooldown:SetHideCountdownNumbers(not showCountdownText)
+            frame.cooldown:SetHideCountdownNumbers(true) -- Cooldown text is hidden untill it can be determined if it should show
         end)
     end
     
@@ -1151,10 +1210,21 @@ local function UpdateHighlightFrame(trackerKey, slotIndex)
     local customTexture = spellID and GetCustomIconTexture(trackerKey, spellID)
     if customTexture and customTexture ~= "" then
         frame.icon:SetTexture(customTexture)
+        frame.icon:SetPoint("TOPLEFT", 0, 0)
+        frame.icon:SetPoint("BOTTOMRIGHT", 0, 0)
+        frame.icon:SetTexCoord(0, 1, 0, 1)
     elseif slotInfo.texture then
         frame.icon:SetTexture(slotInfo.texture)
     else
         frame.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+    end
+    
+    -- Apply custom icon color (spell ID-based)
+    local customColor = spellID and GetCustomIconColor(trackerKey, spellID)
+    if customColor then
+        frame.icon:SetVertexColor(customColor[1] or 1, customColor[2] or 1, customColor[3] or 1)
+    else
+        frame.icon:SetVertexColor(1, 1, 1)
     end
     
     -- Apply saturation and opacity
@@ -1506,6 +1576,19 @@ local function UpdateHighlightFrame(trackerKey, slotIndex)
             frame.radialSwipe:SetColor(color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1)
         end
         
+        -- Apply position offset
+        local offsetX = GetRadialOffsetX(trackerKey, slotIndex)
+        local offsetY = GetRadialOffsetY(trackerKey, slotIndex)
+        if frame.radialSwipe.SetOffset then
+            frame.radialSwipe:SetOffset(offsetX, offsetY)
+        end
+        
+        -- Apply rotation
+        local rotation = GetRadialRotation(trackerKey, slotIndex)
+        if frame.radialSwipe.SetRotation then
+            frame.radialSwipe:SetRotation(rotation)
+        end
+        
         if showRadialSwipe then
             frame.radialSwipe:Show()
         else
@@ -1534,6 +1617,34 @@ local function UpdateHighlightFrame(trackerKey, slotIndex)
         TUICD.Docks:NotifyIconUpdate(trackerKey, slotIndex)
     end
     
+    if thisIconOnCooldown then
+        local showCountdownText = GetShouldShowCountdownText(trackerKey, slotIndex)
+        
+        -- Check if this is a GCD cooldown using GetCooldownTimes (returns milliseconds)
+        local isGCD = false
+        if frame.cooldown and frame.cooldown.GetCooldownTimes then
+            pcall(function()
+                local start, duration = frame.cooldown:GetCooldownTimes()
+                if start and duration and duration > 0 and duration <= GCD_THRESHOLD then
+                    isGCD = true
+                end
+            end)
+        end
+        
+        if isGCD then
+            -- This is a GCD, hide the countdown text
+            frame.cooldown.hideCountdownText = true
+            frame.cooldown:SetHideCountdownNumbers(true)
+        else
+            -- Real cooldown, use the showCountdownText setting
+            frame.cooldown.hideCountdownText = not showCountdownText
+            frame.cooldown:SetHideCountdownNumbers(not showCountdownText)
+        end
+    else
+        -- Not on cooldown, hide countdown text
+        frame.cooldown.hideCountdownText = true
+        frame.cooldown:SetHideCountdownNumbers(true)
+    end
     if shouldShow then
         -- Apply correct state's visual settings
         local actualState = thisIconOnCooldown and "inactive" or "active"
@@ -1543,7 +1654,10 @@ local function UpdateHighlightFrame(trackerKey, slotIndex)
         frame.icon:SetDesaturated(not actualSaturated)
         frame.icon:Show()
         -- Show backdrop (if not using Masque)
-        if not frame._TUI_useMasque then
+        if customTexture and customTexture ~= "" then
+            frame:SetBackdropColor(0, 0, 0, 0)
+            frame:SetBackdropBorderColor(0, 0, 0, 0)
+        elseif not frame._TUI_useMasque then
             frame:SetBackdropColor(0, 0, 0, 0.6)
             frame:SetBackdropBorderColor(0, 0, 0, 1)
         end
@@ -1964,9 +2078,51 @@ end
 
 function CooldownHighlights:SetRadialScale(trackerKey, slotIndex, scale)
     SetRadialScale(trackerKey, slotIndex, scale)
+    UpdateHighlightFrame(trackerKey, slotIndex)
+end
+
+function CooldownHighlights:GetRadialOffsetX(trackerKey, slotIndex)
+    return GetRadialOffsetX(trackerKey, slotIndex)
+end
+
+function CooldownHighlights:SetRadialOffsetX(trackerKey, slotIndex, offset)
+    SetRadialOffsetX(trackerKey, slotIndex, offset)
+    UpdateHighlightFrame(trackerKey, slotIndex)
+end
+
+function CooldownHighlights:GetRadialOffsetY(trackerKey, slotIndex)
+    return GetRadialOffsetY(trackerKey, slotIndex)
+end
+
+function CooldownHighlights:SetRadialOffsetY(trackerKey, slotIndex, offset)
+    SetRadialOffsetY(trackerKey, slotIndex, offset)
+    UpdateHighlightFrame(trackerKey, slotIndex)
+end
+
+function CooldownHighlights:GetRadialRotation(trackerKey, slotIndex)
+    return GetRadialRotation(trackerKey, slotIndex)
+end
+
+function CooldownHighlights:SetRadialRotation(trackerKey, slotIndex, rotation)
+    SetRadialRotation(trackerKey, slotIndex, rotation)
+    UpdateHighlightFrame(trackerKey, slotIndex)
 end
 
 -- Custom icon texture (spell ID-based)
+function CooldownHighlights:GetCustomIconColor(trackerKey, spellID)
+    return GetCustomIconColor(trackerKey, spellID)
+end
+
+function CooldownHighlights:SetCustomIconColor(trackerKey, spellID, color)
+    SetCustomIconColor(trackerKey, spellID, color)
+    -- Trigger update for all enabled slots with this spell ID
+    for slotIndex = 1, 12 do
+        if self:IsEnabled(trackerKey, slotIndex) then
+            UpdateHighlightFrame(trackerKey, slotIndex)
+        end
+    end
+end
+
 function CooldownHighlights:GetCustomIconTexture(trackerKey, spellID)
     return GetCustomIconTexture(trackerKey, spellID)
 end
